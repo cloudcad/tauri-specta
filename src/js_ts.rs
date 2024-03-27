@@ -66,10 +66,13 @@ fn return_as_result_tuple(expr: &str, as_any: bool) -> String {
     )
 }
 
-pub fn maybe_return_as_result_tuple(expr: &str, typ: &DataType, as_any: bool) -> String {
+pub fn maybe_return_as_result_tuple(expr: &str, typ: &Option<DataType>, as_any: bool) -> String {
     match typ {
-        DataType::Result(_) => return_as_result_tuple(expr, as_any),
-        _ => format!("return {expr};"),
+        Some(result) => match result {
+            DataType::Result(_) => return_as_result_tuple(expr, as_any),
+            _ => format!("return {expr};"),
+        },
+        None => format!("return {expr};"),
     }
 }
 
@@ -104,17 +107,20 @@ pub fn handle_result(
     type_map: &TypeMap,
     cfg: &ExportConfig,
 ) -> Result<String, ExportError> {
-    Ok(match &function.result {
-        DataType::Result(t) => {
-            let (t, e) = t.as_ref();
+    Ok(match function.result.as_ref() {
+        Some(result) => match result {
+            DataType::Result(t) => {
+                let (t, e) = t.as_ref();
 
-            format!(
-                "__Result__<{}, {}>",
-                ts::datatype(&cfg.inner, t, type_map)?,
-                ts::datatype(&cfg.inner, e, type_map)?
-            )
-        }
-        t => ts::datatype(&cfg.inner, t, type_map)?,
+                format!(
+                    "__Result__<{}, {}>",
+                    ts::datatype(&cfg.inner, t, type_map)?,
+                    ts::datatype(&cfg.inner, e, type_map)?
+                )
+            }
+            t => ts::datatype(&cfg.inner, t, type_map)?,
+        },
+        None => "void".to_string(),
     })
 }
 

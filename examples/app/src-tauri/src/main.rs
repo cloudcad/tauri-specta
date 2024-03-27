@@ -31,22 +31,22 @@ fn has_error() -> Result<&'static str, i32> {
 #[specta::specta]
 fn generic<T: tauri::Runtime>(_app: tauri::AppHandle<T>) {}
 
-mod nested {
-    use super::*;
+// mod nested {
+//     use serde::Serialize;
 
-    #[tauri::command]
-    #[specta::specta]
-    pub fn some_struct() -> MyStruct {
-        MyStruct {
-            some_field: "Hello World".into(),
-        }
-    }
+//     #[tauri::command]
+//     #[specta::specta]
+//     pub fn some_struct() -> MyStruct {
+//         MyStruct {
+//             some_field: "Hello World".into(),
+//         }
+//     }
 
-    #[derive(Serialize, specta::Type)] // For Specta support you must add the `specta::Type` derive macro.
-    pub struct MyStruct {
-        some_field: String,
-    }
-}
+//     #[derive(Serialize, specta::Type)] // For Specta support you must add the `specta::Type` derive macro.
+//     pub struct MyStruct {
+//         some_field: String,
+//     }
+// }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type, tauri_specta::Event)]
 pub struct DemoEvent(String);
@@ -61,7 +61,7 @@ fn main() {
                 hello_world,
                 goodbye_world,
                 has_error,
-                nested::some_struct,
+                // nested::some_struct,
                 generic::<tauri::Wry>
             ])
             .events(tauri_specta::collect_events![DemoEvent, EmptyEvent])
@@ -78,16 +78,16 @@ fn main() {
         .setup(|app| {
             let handle = app.handle();
 
-            DemoEvent::listen_global(&handle, |event| {
+            DemoEvent::listen_any(handle, |event| {
                 dbg!(event.payload);
             });
 
-            DemoEvent("Test".to_string()).emit_all(&handle).ok();
+            DemoEvent("Test".to_string()).emit(handle).ok();
 
-            EmptyEvent::listen_global(&handle, {
+            EmptyEvent::listen_any(handle, {
                 let handle = handle.clone();
                 move |_| {
-                    EmptyEvent.emit_all(&handle).ok();
+                    EmptyEvent.emit(&handle).ok();
                 }
             });
 

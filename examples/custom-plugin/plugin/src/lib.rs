@@ -34,7 +34,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             (plugin_utils.setup)(&app);
 
             std::thread::spawn(move || loop {
-                RandomNumber(rand::random()).emit_all(&app).unwrap();
+                RandomNumber(rand::random()).emit(&app).unwrap();
                 std::thread::sleep(std::time::Duration::from_secs(1));
             });
 

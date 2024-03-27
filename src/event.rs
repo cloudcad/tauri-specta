@@ -5,7 +5,7 @@ use std::{
 
 use serde::{de::DeserializeOwned, Serialize};
 use specta::{DataType, NamedType, SpectaID};
-use tauri::{EventHandler, Manager, Runtime, Window};
+use tauri::{EventId, Manager, Runtime, Window};
 
 use crate::PluginName;
 
@@ -26,7 +26,7 @@ pub struct EventCollection(pub(crate) BTreeSet<SpectaID>, BTreeSet<&'static str>
 
 impl EventCollection {
     pub fn register<E: Event>(&mut self) {
-        if !self.0.insert(E::SID) {
+        if !self.0.insert(E::sid()) {
             panic!("Event {} registered twice!", E::NAME)
         }
 
@@ -61,7 +61,7 @@ impl EventRegistry {
 }
 
 pub struct TypedEvent<T: Event> {
-    pub id: EventHandler,
+    pub id: EventId,
     pub payload: T,
 }
 
@@ -84,9 +84,8 @@ fn get_meta_from_registry<R: Runtime>(
 macro_rules! make_handler {
     ($handler:ident) => {
         move |event| {
-            let value: serde_json::Value = event
-                .payload()
-                .and_then(|p| serde_json::from_str(p).ok())
+            let value: serde_json::Value = serde_json::from_str(event.payload())
+                .ok()
                 .unwrap_or(serde_json::Value::Null);
 
             $handler(TypedEvent {
@@ -100,22 +99,23 @@ macro_rules! make_handler {
 
 macro_rules! get_meta {
     ($handle:ident) => {
-        get_meta_from_registry(Self::SID, Self::NAME, $handle)
+        get_meta_from_registry(Self::sid(), Self::NAME, $handle)
     };
 }
 
 pub trait Event: NamedType {
     const NAME: &'static str;
+    // const SID: SpectaID;
 
     // Manager functions
 
-    fn emit_all<R: Runtime>(self, handle: &impl Manager<R>) -> tauri::Result<()>
+    fn emit<R: Runtime>(self, handle: &impl Manager<R>) -> tauri::Result<()>
     where
         Self: Serialize + Clone,
     {
         let meta = get_meta!(handle);
 
-        handle.emit_all(&meta.wrap_with_plugin(Self::NAME), self)
+        handle.emit(&meta.wrap_with_plugin(Self::NAME), self)
     }
 
     fn emit_to<R: Runtime>(self, handle: &impl Manager<R>, label: &str) -> tauri::Result<()>
@@ -127,71 +127,71 @@ pub trait Event: NamedType {
         handle.emit_to(label, &meta.wrap_with_plugin(Self::NAME), self)
     }
 
-    fn trigger_global<R: Runtime>(self, handle: &impl Manager<R>)
-    where
-        Self: Serialize + Sized,
-    {
-        let meta = get_meta!(handle);
+    // fn trigger_global<R: Runtime>(self, handle: &impl Manager<R>)
+    // where
+    //     Self: Serialize + Sized,
+    // {
+    //     let meta = get_meta!(handle);
 
-        handle.trigger_global(
-            &meta.wrap_with_plugin(Self::NAME),
-            serde_json::to_string(&self).ok(),
-        );
-    }
+    //     handle.trigger_global(
+    //         &meta.wrap_with_plugin(Self::NAME),
+    //         serde_json::to_string(&self).ok(),
+    //     );
+    // }
 
-    fn listen_global<F, R: Runtime>(handle: &impl Manager<R>, handler: F) -> EventHandler
+    fn listen_any<F, R: Runtime>(handle: &impl Manager<R>, handler: F) -> EventId
     where
         F: Fn(TypedEvent<Self>) + Send + 'static,
         Self: DeserializeOwned,
     {
         let meta = get_meta!(handle);
 
-        handle.listen_global(meta.wrap_with_plugin(Self::NAME), make_handler!(handler))
+        handle.listen_any(meta.wrap_with_plugin(Self::NAME), make_handler!(handler))
     }
 
-    fn once_global<F, R: Runtime>(handle: &impl Manager<R>, handler: F) -> EventHandler
+    fn once_any<F, R: Runtime>(handle: &impl Manager<R>, handler: F) -> EventId
     where
         F: FnOnce(TypedEvent<Self>) + Send + 'static,
         Self: DeserializeOwned,
     {
         let meta = get_meta!(handle);
 
-        handle.once_global(meta.wrap_with_plugin(Self::NAME), make_handler!(handler))
+        handle.once_any(meta.wrap_with_plugin(Self::NAME), make_handler!(handler))
     }
 
     // Window functions
 
-    fn emit(self, window: &Window<impl Runtime>) -> tauri::Result<()>
-    where
-        Self: Serialize + Clone,
-    {
-        let meta = get_meta!(window);
+    // fn emit(self, window: &Window<impl Runtime>) -> tauri::Result<()>
+    // where
+    //     Self: Serialize + Clone,
+    // {
+    //     let meta = get_meta!(window);
 
-        window.emit(&meta.wrap_with_plugin(Self::NAME), self)
-    }
+    //     window.emit(&meta.wrap_with_plugin(Self::NAME), self)
+    // }
 
-    fn trigger(self, window: &Window<impl Runtime>)
-    where
-        Self: Serialize + Sized,
-    {
-        let meta = get_meta!(window);
+    // fn trigger(self, window: &Window<impl Runtime>)
+    // where
+    //     Self: Serialize + Sized,
+    // {
+    //     let meta = get_meta!(window);
 
-        window.trigger(
-            &meta.wrap_with_plugin(Self::NAME),
-            serde_json::to_string(&self).ok(),
-        );
-    }
+    //     window.trigger(
+    //         &meta.wrap_with_plugin(Self::NAME),
+    //         serde_json::to_string(&self).ok(),
+    //     );
+    // }
 
-    fn emit_and_trigger(self, window: &Window<impl Runtime>) -> tauri::Result<()>
-    where
-        Self: Serialize + Clone,
-    {
-        let meta = get_meta!(window);
+    // fn emit_and_trigger(self, window: &Window<impl Runtime>) -> tauri::Result<()>
+    // where
+    //     Self: Serialize + Clone,
+    // {
+    //     let meta = get_meta!(window);
 
-        window.emit_and_trigger(&meta.wrap_with_plugin(Self::NAME), self)
-    }
+    //     window.emit_and_trigger(&meta.wrap_with_plugin(Self::NAME), self)
+    // }
 
-    fn listen<F>(window: &Window<impl Runtime>, handler: F) -> EventHandler
+    fn listen<F>(window: &Window<impl Runtime>, handler: F) -> EventId
     where
         F: Fn(TypedEvent<Self>) + Send + 'static,
         Self: DeserializeOwned,
@@ -201,7 +201,7 @@ pub trait Event: NamedType {
         window.listen(meta.wrap_with_plugin(Self::NAME), make_handler!(handler))
     }
 
-    fn once<F>(window: &Window<impl Runtime>, handler: F) -> EventHandler
+    fn once<F>(window: &Window<impl Runtime>, handler: F) -> EventId
     where
         F: FnOnce(TypedEvent<Self>) + Send + 'static,
         Self: DeserializeOwned,
