@@ -289,7 +289,6 @@ where
         self,
         commands: CollectCommandsTuple<TInvokeHandler>,
     ) -> PluginBuilder<TLang, Commands<TRuntime, TInvokeHandler>, TEvents> {
-        println!("Commands");
         PluginBuilder {
             lang: self.lang,
             commands: Commands(commands, Default::default()),
@@ -399,8 +398,6 @@ where
 
         let (rendered, ret) = self.render()?;
 
-        println!("Rendered: {}", rendered);
-
         if let Some(path) = cfg.path.clone() {
             if let Some(export_dir) = path.parent() {
                 fs::create_dir_all(export_dir)?;
@@ -463,7 +460,6 @@ where
 {
     /// Exports the output of [`internal::render`] for a collection of [`FunctionDataType`] into a TypeScript file.
     pub fn export(self) -> Result<(), TLang::Error> {
-        println!("Exporting");
         self.export_for_plugin(PLUGIN_NAME)
     }
 
