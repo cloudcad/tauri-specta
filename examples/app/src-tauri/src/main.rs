@@ -109,6 +109,11 @@ pub struct EmptyEvent;
 #[derive(Type)]
 pub struct Custom(String);
 
+#[derive(Type)]
+pub struct Testing {
+    a: String,
+}
+
 fn main() {
     let (invoke_handler, register_events) = {
         let builder = ts::builder()
@@ -122,9 +127,12 @@ fn main() {
                 typesafe_errors_using_thiserror,
                 typesafe_errors_using_thiserror_with_value
             ])
-            .events(tauri_specta::collect_events![DemoEvent, EmptyEvent])
+            .events(tauri_specta::collect_events![crate::DemoEvent, EmptyEvent])
             .types(TypeCollection::default().register::<Custom>())
-            .config(specta::ts::ExportConfig::default().formatter(specta::ts::formatter::prettier));
+            .config(specta::ts::ExportConfig::default().formatter(specta::ts::formatter::prettier))
+            .types(TypeCollection::default().register::<Testing>())
+            .statics(StaticCollection::default().register("universalConstant", 42))
+            .header("/* These are my Tauri Specta Bindings! */");
 
         #[cfg(debug_assertions)]
         let builder = builder.path("../src/bindings.ts");
