@@ -5,11 +5,14 @@ edition = "2021"
 links = "tauri-plugin-specta-example"
 
 [build-dependencies]
-tauri-plugin = { version = "=2.0.0-beta.17", features = ["build"] }
+tauri-plugin = { version = "=2.0.0-rc.7", features = ["build"] }
 
 [dependencies]
 rand = "0.8.5"
 serde = "1"
-specta = "=2.0.0-rc.12"
-tauri = "=2.0.0-beta.22"
-tauri-specta = { path = "../../../", features = ["typescript"] }
+specta = { workspace = true }
+tauri = { workspace = true }
+tauri-specta = { path = "../../../", features = ["derive", "typescript"] }
+
+[dev-dependencies]
+specta-typescript = { workspace = true }

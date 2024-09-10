@@ -1,7 +1,8 @@
-import { getCurrent } from "@tauri-apps/api/webviewWindow";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { commands, events } from "./bindings";
+// import { commands, events } from "./bindings-jsdoc.js";
 
-const appWindow = getCurrent();
+const appWindow = getCurrentWebview();
 
 let greetInputEl: HTMLInputElement | null;
 let greetMsgEl: HTMLElement | null;
